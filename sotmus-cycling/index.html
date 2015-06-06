@@ -155,17 +155,56 @@ window.onload = function() {
 <div>
     <p><em>cycling directions with openstreetmap and OSRM</em></p>
     <small>tw: <a href='https://www.twitter.com/lbudorick'>@lbudorick</a>   /// gh: <a href='https://www.github.com/lbud'>@lbud</a></small>
+    <notes>
+        * OSRM (powers routing on openstreetmap.org)
+        * want to talk about
+            * using OSRM
+            * developing OSRM
+            * improving OSRM with better data
+
+        * OSRM uses OpenStreetMap as its data source
+    </notes>
 </div>
 <div><p class='nobreak'>contraction hierarchies</p><br /><br />
     <p class='nobreak'>  ↑ preprocessing time</p><br />
     <p class='nobreak'>  ↓ query time</p>
+    <notes>
+        * won't go too far into routing algo:
+    	* contraction hierarchies
+    	* general rule of routing algorithms: tradeoff b/w preprocessing + query time
+    	* CH at one extreme: lots of time preprocessing, queries in a matter of ms
+    </notes>
 </div>
 <div><img src='./assets/segways-all.png' />
+    <notes>
+        * what this preprocessing does
+        * reads routing profile, process OSM extract based on that profile
+        * ex: segway routing in SF
+        * kind of silly but bear with me
+        * important:
+        	* maxspeed of segway is 12.5 mph
+        	* only slow roads, no main, etc
+        	* highway=residential
+        	* maybe paths, no stairs, maybe some bicycle designations
+        * read all nodes ways: throw most away
+    </notes>
 </div>
-<div><IMG src='./assets/segways-only.png' /></div>
+<div><IMG src='./assets/segways-only.png' />
+    <notes>
+        * absurd example but:
+        * point: routing engine's query algo doesn't change based on transportation profile,
+        * it's just querying diff graph you've built to begin with
+    </notes>
+</div>
 <div>
     <img src="assets/bike.svg" style="width:150%;margin-left:-400px;margin-top:-240px;position:fixed;" />
-    <notes>rad illustration by tatiana van campenhout ;)</notes>
+    <!-- rad illustration by tatiana van campenhout ;) -->
+    <notes>
+        * talking bicycle directions
+        * 3 default profiles: car, walking, bicycle
+        * Thx to Dennis Luxen, Emil Tin et al for great default profiles
+        * talk outline:
+    </notes>
 </div>
 <div>
     <small><ul>
@@ -173,16 +212,46 @@ window.onload = function() {
         <li>cycling directions + OSM data</li>
         <li>OSRM roadmap</li>
     </ul></small>
+    <notes>
+        * how does the OSRM bicycle profile work, and how can you build your own?
+        * how can you help make cycling directions better with data? and
+        * what's on our OSRM roadmap to make cycling directions better?
+    </notes>
 </div>
 <div>
     <em>OSRM profiles</em> and bicycle routing
+    <notes>
+        * walk through: how bicycle routing works in OSRM
+        * our default bicycle prof expresses traversal patterns of normal road/urban cycling — commuters
+        * assumes a few things about this bicyclist. for example:
+    </notes>
 </div>
-<div class='nobreak'>✔️ bike on ferries</div>
-<div class='nobreak'>✔️ public transit (trains)</div>
-<div class='nobreak'>✔️ pushing on paths</div>
-<div class='nobreak'>✔️ steps where necessary</div>
+<div class='nobreak'>✔️ bike on ferries
+<notes>
+    [START WALKTHROUGH]
+    * can route on ferries
+</notes>
+</div>
+<div class='nobreak'>✔️ public transit (trains)
+<notes>
+    * are ok with taking bike on public transportation (can take bike on train)
+</notes>
+</div>
+<div class='nobreak'>✔️ pushing on paths
+<notes>
+    * are ok with pushing bike on sidewalks where you can't ride
+</notes>
+</div>
+<div class='nobreak'>✔️ steps where necessary
+<notes>
+    * are ok with steps (these will be scored very low — speed=2 — but can be necessary)
+</notes>
+</div>
 <div><pre>local default_speed = 15
 local walking_speed = 6</pre>
+<notes>
+    * sets some default speeds
+</notes>
 </div>
 <div><pre>bicycle_speeds = {
   ["cycleway"] = default_speed,
@@ -200,12 +269,14 @@ local walking_speed = 6</pre>
   ["track"] = 12,
   ["path"] = 12
 }</pre>
+<notes>decide speed per road type</notes>
 </div>
 <div><pre>pedestrian_speeds = {
   ["footway"] = walking_speed,
   ["pedestrian"] = walking_speed,
   ["steps"] = 2
 }</pre>
+<notes>set walking way speeds</notes>
 </div>
 <div><pre>railway_speeds = {
   ["train"] = 10,
@@ -215,11 +286,13 @@ local walking_speed = 6</pre>
   ["monorail"] = 10,
   ["tram"] = 10
 }</pre>
+<notes>train speeds</notes>
 </div>
 <div><pre>amenity_speeds = {
   ["parking"] = 10,
   ["parking_entrance"] = 10
 }</pre>
+<notes>amenity speeds</notes>
 </div>
 <div><pre>platform_speeds = {
   ["platform"] = walking_speed
@@ -228,6 +301,7 @@ local walking_speed = 6</pre>
 man_made_speeds = {
   ["pier"] = walking_speed
 }</pre>
+<notes>train platforms, piers</notes>
 </div>
 <div><pre>route_speeds = {
   ["ferry"] = 5
@@ -236,6 +310,7 @@ man_made_speeds = {
 bridge_speeds = {
   ["movable"] = 5
 }</pre>
+<notes>ferries, movable bridges</notes>
 </div>
 <div><pre>traffic_signal_penalty          = 2
 use_turn_restrictions           = false
@@ -250,24 +325,67 @@ local safety_penalty            = 1.0
 local use_public_transport      = true
 local fallback_names            = true
 </pre>
+    <notes>
+        * sets certain other rules based on our preferences for urban commuter --
+            *yes obay oneway,
+            * no obey bollards
+        [ END WALKTHROUGH ]
+        * how?
+        * we use Lua: scripting language that binds well to C++
+        * all profiles written in Lua bc OSRM's extractor binds specifically to 2 fns in a profile:
+        	* node_function
+        	* way_function
+        * these are crux of lua profs
+        * extractor parses all nodes + ways in parallel; runs thru respective profile-defined fns
+    </notes>
 </div>
 <div><img src='./assets/lua/node_function.png' />
+    <notes>
+        NODES:
+        	* important: whether traversable
+        	* if it's barrier, no
+        * run through barrier + access lists: can we route through?
+        * save
+    </notes>
 </div>
 <div><img src='./assets/lua/way_function_a_traverse.png' />
+    <notes>
+        WAYS:
+        * 2 things:
+        * 1. can we traverse this way?
+        * 2. how fast?
+        * check tags and put it through the ringer: (point to slide)
+        * decide if we'll even keep
+    </notes>
 </div>
 <div><img src='./assets/lua/way_function_b_speed.png' />
+    <notes>SPEEDS</notes>
 </div>
 <div><img src='./assets/lua/way_function_c_direction.png' />
+    <notes>DIRECTIONALITY</notes>
 </div>
 <div><img src='./assets/lua/way_function_d_pushing.png' />
+    <notes>PUSHING</notes>
 </div>
 <div><img src='./assets/lua/way_function_e_cycleway.png' />
+    <notes>EVAL CYCLEWAY TAGS</notes>
 </div>
 <div><img src='./assets/lua/way_function_f_dismount.png' />
+    <notes>EVAL DISMOUNT TAGS</notes>
 </div>
 <div><img src='./assets/lua/way_function_g_surface.png' />
+    <notes>EVAL SURFACE TAGS</notes>
 </div>
 <div><img src='./assets/lua/way_function_h_limit.png' />
+    <notes>
+        LIMIT -- return way with agg speed
+
+        * later: contractor will use these to build a graph
+
+        * but this is obv not indicative of all cyclists:
+            * consider types of biking. commuter/fastest, scenic/family, cargo, mountain…tolerance of elevation (will get to that later), etc
+            * BUT say, for ex, you want to use OSRM and write your own mountain biking profile
+    </notes>
 </div>
 <div>assumptions:
     <ul>
@@ -275,6 +393,11 @@ local fallback_names            = true
         <li><code>mtb=*</code></li>
         <li><code>! bicycle=no</code></li>
     </ul>
+    <notes>
+        * use mtn biking speeds
+        * prioritize xyz ways
+        * write a profile that looks a _little_ like profiles in OSRM: needs node_function and way_function
+    </notes>
 </div>
 <div><pre>node_function (node, result)
 
@@ -282,20 +405,43 @@ local fallback_names            = true
     result.barrier = false
 
 end</pre>
+    <notes>
+        * the primary goal of the node function, again: is it passable
+    </notes>
 </div>
 <div><pre>way_function (way, result)
     <span class='comment'>-- TODO is this routable? if not, `return`
 
     -- TODO use `mtb:scale` and `mtb:scale:imba` values to score</span>
 end</pre>
+    <notes>
+        * primary goal of way function: how fast, if at all
+        TRANSITION: but maybe you've written this now and you find errors where you can't route A to B, etc
+
+        * OSRM is very mature, it can find where to go
+        * so your problem is data
+    </notes>
 </div>
 <div>
     <em>osm data:</em> <span class='nobreak'>help improve cycling directions</span>
+    <notes>
+        * OSM data quality is really important
+        * 3 things that can cause routing problems:
+    </notes>
 </div>
 <div><ul>
     <li>coverage</li>
     <li class='nobreak'>tag consistency/conventions</li>
     <li>connectivity</li>
+    <notes>
+        * coverage
+        * tagging consistency
+        * connectivity
+
+        * bc when you query OSRM instance, you're only querying modified graph of the parts of the world that the computer _thinks_ you can ride a bicycle on
+
+        * we say if you have empty or nonexistent…
+    </notes>
 </ul></div>
 <div>
     <p>≠ highway +</p>
@@ -305,13 +451,41 @@ end</pre>
     <p>≠ man_made +</p>
     <p>≠ public_transport +</p>
     <p>≠ bridge</p>
+    <notes>
+        highway +
+        route +
+        railway +
+        amenity +
+        man_made +
+        public_transport +
+        bridge
+    </notes>
 </div>
 <div>
     <p class='nobreak'>== building??</p>
     <small>probably</small>
+    <notes>
+        * probably a bldg
+        * don't ride bike down bldg
+        * so if you want to route along something, needs to be tagged well
+        * data quality has got to be there
+
+        * OSM amazing bc has so much high quality bicycle data
+        * some companies have good bicycle data but not open-source or you can't buy or can't use independently of their products or contribute
+        * some don't have cycling data
+        * we're also working w RunKeeper to use cycling traces to make OSM's cycling coverage even better
+        * tagging quality: a lot, like tagging highway, is obvious. But some specifically/disproportionately affect bicycle routing:
+    </notes>
 </div>
 <div>
     <p class='nobreak'>surface tags</p>
+    <notes>
+        SURFACE TAGS
+        * so important
+        [START FLIPPING]
+        * can more or less walk/drive similarly on a lot of surfaces
+        * asphalt vs paving stones vs cobblestone vs gravel makes a huge difference to a road bicyclist
+    </notes>
 </div>
 <div><img src='./assets/surface/asphalt.jpg' /></div>
 <div><img src='./assets/surface/paving_stones.jpg' /></div>
@@ -340,9 +514,20 @@ end</pre>
   ["mud"] = 3,
   ["sand"] = 3
 }</pre>
+<notes>
+    * and we can set different preferences accordingly
+    * but we can only avoid your cobblestone road if it's tagged as a cobblestone road
+</notes>
 </div>
 <div>
     <p class='nobreak'>cycleway tags</p>
+    <notes>
+        CYCLEWAY TAGS
+        * tag according to rules in OSM wiki [FLIP]
+        * so many complex combinations of highways + cycleways, separate or integrated bike lanes
+        [ FLIP THROUGH ]
+        * when in doubt, look it up
+    </notes>
 </div>
 <div>
     <a href='http://wiki.openstreetmap.org/wiki/Bicycle'>wiki.openstreetmap.org/wiki/Bicycle</a>
@@ -374,6 +559,14 @@ end</pre>
     <div><p></p><img class='osmtag' src='./assets/tags/11.svg' /></div>
 <div>
     <p class='nobreak'>bicycle access tags</p>
+    <notes>
+        BICYCLE ACCESS TAGS
+        * pain, confused, inconsistent
+        [FLIP]
+        * bicycle=no vs bicycle=dismount, =permissive, =destination
+        * bicycle=no vs bicycle=dismount are often misused -- if `no`, can't ride a bike at all
+            * really bad for bike routing as we need to know when access is prohibited vs just riding
+    </notes>
 </div>
 <div><pre>bicycle=yes
 bicycle=designated
@@ -383,17 +576,38 @@ bicycle=permissive
 bicycle=destination
 bicycle=dismount
 oneway:bicycle=yes/no</pre>
+<notes>(bicycle access tags)</notes>
 </div>
 <div>
     <p>width</p>
     <p>maxspeed</p>
     <p>lanes</p>
+    <notes>other tags like width, maxspeed, lanes -- indicative of safety</notes>
 </div>
 <div>
     connectivity
+    <notes>
+        CONNECTIVITY
+        * routing engines: useful for finding errors
+        * crucial for routing
+        * ferry: you can bring bike on ferry, _only_ if it is connected to road network
+        * discussions of sidewalks as separate ways from roads
+        * idk but
+        * if profile says sidewalks are permissive (or pushing at least)
+        	+ nearest neighbor to start pt is sidewalk
+        	+ but sidewalks aren't well-connected to road graph
+        	+ routing will break down: problematic
+
+        * tldr: you can do a lot in OSM to help make cycle routing better
+    </notes>
 </div>
 <div>
     what we're doing to make cycling directions <em>better</em> in OSRM
+    <notes>
+        OSRM ROADMAP
+        * recently rolled out to Mapbox internal, feedback like what
+        [ FLIP THROUGH ]
+    </notes>
 </div>
 <div><img src='./assets/feedback/feedback-0.png' /></div>
 <div><img src='./assets/feedback/feedback-1.png' /></div>
@@ -401,37 +615,89 @@ oneway:bicycle=yes/no</pre>
 <div><img src='./assets/feedback/feedback-3.png' /></div>
 <div><img src='./assets/feedback/feedback-4.png' /></div>
 <div><img src='./assets/feedback/feedback-5.png' /></div>
-<div><img src='./assets/wiggle_not.png' /></div>
-<div><img src='./assets/wiggle_yes.png' /></div>
+<div><img src='./assets/wiggle_not.png' />
+    <notes>example: work to my old house, (explain the wiggle)</notes>
+</div>
+<div><img src='./assets/wiggle_yes.png' />
+    <notes>
+        (slide with the wiggle)
+        * flat + designated bicycle route
+        * 2 reasons why OSRM doesn't route:
+        	* doesn't support external data in mainline OSRM
+        	* doesn't support relations
+    </notes>
+</div>
 <div>
     external data support
+    <notes>
+        EXTERNAL DATA
+        * integrate external data in profile
+        [talk talk talk]
+    </notes>
 </div>
 <div>
     <pre>elevation_source = load_raster_source(
     "the-whole-world-SRTM.asc"
 )</pre>
+<notes>(SRTM import code)</notes>
 </div>
 <div>
     <pre>terribleness =
     get_raster_data(elevation_source, start.lon, start.lat) -
     get_raster_data(elevation_source, end.lon, end.lat)</pre>
     <pre>> :( :(</pre>
+<notes>(SRTM query code)</notes>
 </div>
 <div>
     <pre>much_danger = ("sf-bicycle-injuries.asc")</pre>
     <pre>stay_awayyyyy = get_raster_data_interpolated(
     much_danger, lon, lat)</pre>
+<notes>(bike injuries import/query code)</notes>
 </div>
 <div>
     <p class='nobreak'>relation support</p>
+<notes>
+    RELATION SUPPORT
+    * nodes and ways are straightforward
+    * relations more arbitrary data model
+    * will be parsing relations not in parallel but working on not adding too much overhead
+</notes>
 </div>
-<div><img src='./assets/sf_bikeways_no.png' /></div>
+<div><img src='./assets/sf_bikeways_no.png' />
+<notes>(SF without bike routes)</notes>
+</div>
 <div><img src='./assets/sf_bikeways.png' /></div>
+<notes>
+    * relations: could support routes
+    * = typically safer / otherwise preferable to routing engines naïvely return
+</notes>
 <div>
     <span class='nobreak'>separate speed and</span> edge weight
+    <notes>
+        SEPARATE SPEED + EDGE WEIGHT
+        * way_function returns speed, which is used to calculate preferability
+        * works well for vehicle
+        * assumption breaks down w bikes: explain
+        * in routing, we indicate preference as heuristic that's read by the routing engine when choosing the next edge to explore
+        * right now OSRM uses speed as only heuristic
+        * so to tell engine this is unsafe or hill sucks, we have to give it low score
+        * then travel time is wrong
+    </notes>
 </div>
-<div><img src='./assets/biketopresidio-noelev.png' /></div>
-<div><img src='./assets/biketopresidio-withelev.png' /></div>
+<div><img src='./assets/biketopresidio-noelev.png' />
+<notes>
+(north beach to presidio, no elev) -
+goes over russian hill O_O
+</notes>
+</div>
+<div><img src='./assets/biketopresidio-withelev.png' />
+    <notes>
+        (north beach to presidio, rather go to north point/bay st)
+        * so I'd rather get this
+        * but it will only return if it's best-scored
+        * and to say it's faster is a lie, it's just easier
+    </notes>
+</div>
 <div>
     <p class='nobreak'>better cycling directions with</p>
     <em> OSM</em> and <em>OSRM</em>
@@ -441,4 +707,5 @@ oneway:bicycle=yes/no</pre>
     <small>github.com/Project-OSRM</small>
     <br />
     <small>@lbudorick</small>
+    <notes>end</notes>
 </div>
