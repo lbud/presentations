@@ -1,0 +1,444 @@
+<!DOCTYPE html><html><head><title></title><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" /><style type='text/css'>
+@font-face {
+  font-family: 'Gotham';
+  src: url('assets/gotham.otf');
+}
+body {
+  font-family:'Gotham';
+  letter-spacing:-1.5px;
+  background:#fff;
+  background-size:100%;
+  color:#222;
+  margin:0;
+  padding:0;
+  font-weight:bold;
+}
+/* Use that font in a page */
+
+h1, h2, h3, p {
+  margin:0;
+}
+
+em {
+  font-style:normal;
+  text-transform:uppercase;
+  letter-spacing:2px;
+  color:#83CEFF;
+}
+
+a {
+  font-style:normal;
+  background:#444;
+  color:#fff;
+  text-decoration:none;
+}
+
+img {
+  width:100%;
+}
+
+div {
+  cursor:pointer;
+  cursor:hand;
+  position:absolute;
+  top:0px;
+  left:0px;
+  padding:75px;
+  line-height:97%;
+}
+
+div.center {
+  text-align:center;
+}
+
+div.imageText {
+  text-shadow:0px 0px 5px rgba(0,0,0,0.2);
+}
+
+notes {
+    display:none;
+}
+
+small {
+    font-size:50%;
+    color:#40789C;
+}
+
+pre {
+    /*font-size: 1040%;*/
+    white-space: pre;
+    word-wrap: break-word;
+}
+
+pre .highlight {
+    background-color: rgb(248, 238, 199);
+}
+
+pre .comment {
+    color: #aaa;
+}
+
+.nobreak {
+    white-space:pre;
+}
+
+.osmtag {
+    margin: auto 50%;
+}
+
+</style><script type='text/javascript'>
+window.onload = function() {
+    var s = document.getElementsByTagName('div'), ti;
+    if (!s) return;
+    var big = { current: 0, forward: fwd, reverse: rev, go: go, length: s.length };
+    window.big = big;
+    function resize() {
+        var w = window.innerWidth, h = window.innerHeight, e = s[big.current];
+        e.style.fontSize = h + 'px';
+        // if (e.offsetWidth <= w && e.offsetHeight <= h) {
+            for (var i = h - 2; e.offsetWidth > w || e.offsetHeight > h; i -= 2) {
+                e.style.fontSize = i + 'px';
+            }
+        // }
+        e.style.marginTop = ((h - e.offsetHeight) / 2) + 'px';
+    }
+    function go(n) {
+        big.current = n;
+        var e = s[n], t = parseInt(e.getAttribute('data-timeToNext') || 0, 10),
+            notes = e.getElementsByTagName('notes');
+        document.body.className = e.getAttribute('data-bodyclass') || '';
+        for (var k = 0; k < s.length; k++) s[k].style.display = 'none';
+        e.style.display = 'inline';
+        for (k = 0; typeof console === 'object' && k < notes.length; k++) console.log('%c%s: %s', 'padding:5px;font-family:serif;font-size:18px;line-height:150%;', n, notes[k].innerHTML.trim());
+        if (e.firstChild && e.firstChild.nodeName === 'IMG') {
+            document.body.style.backgroundImage = 'url("' + e.firstChild.src + '")';
+            e.firstChild.style.display = 'none';
+            if ('classList' in e) e.classList.add('imageText');
+        } else {
+            document.body.style.backgroundImage = '';
+            document.body.style.backgroundColor = e.style.backgroundColor;
+        }
+        if (ti !== undefined) window.clearInterval(ti);
+        if (t > 0) ti = window.setTimeout(fwd, (t * 1000));
+        resize();
+        if (window.location.hash !== n) window.location.hash = n;
+        document.title = e.textContent || e.innerText;
+    }
+    document.onclick = function() { go(++big.current % (s.length)); };
+    function fwd() { go(Math.min(s.length - 1, ++big.current)); }
+    function rev() { go(Math.max(0, --big.current)); }
+    document.onkeydown = function(e) {
+        if (e.which === 39 || e.which === 34 || e.which === 40) fwd();
+        if (e.which === 37 || e.which === 33 || e.which === 38) rev();
+    };
+    document.ontouchstart = function(e) {
+        var x0 = e.changedTouches[0].pageX;
+        document.ontouchend = function(e2) {
+            var x1 = e2.changedTouches[0].pageX;
+            if (x1 - x0 < 0) fwd();
+            if (x1 - x0 > 0) rev();
+        };
+    };
+    function parse_hash() {
+        return Math.max(Math.min(s.length - 1,
+            parseInt(window.location.hash.substring(1), 10)), 0);
+    }
+    if (window.location.hash) big.current = parse_hash() || big.current;
+    window.onhashchange = function() {
+        var c = parse_hash();
+        if (c !== big.current) go(c);
+    };
+    window.onresize = resize;
+    go(big.current);
+};
+</script></head><body>
+<div>
+    <p><em>cycling directions with openstreetmap and OSRM</em></p>
+    <small>tw: <a href='https://www.twitter.com/lbudorick'>@lbudorick</a>   /// gh: <a href='https://www.github.com/lbud'>@lbud</a></small>
+</div>
+<div><p class='nobreak'>contraction hierarchies</p><br /><br />
+    <p class='nobreak'>  ↑ preprocessing time</p><br />
+    <p class='nobreak'>  ↓ query time</p>
+</div>
+<div><img src='./assets/segways-all.png' />
+</div>
+<div><IMG src='./assets/segways-only.png' /></div>
+<div>
+    <img src="assets/bike.svg" style="width:150%;margin-left:-400px;margin-top:-240px;position:fixed;" />
+    <notes>rad illustration by tatiana van campenhout ;)</notes>
+</div>
+<div>
+    <small><ul>
+        <li>your own bicycle routing profile</li>
+        <li>cycling directions + OSM data</li>
+        <li>OSRM roadmap</li>
+    </ul></small>
+</div>
+<div>
+    <em>OSRM profiles</em> and bicycle routing
+</div>
+<div class='nobreak'>✔️ bike on ferries</div>
+<div class='nobreak'>✔️ public transit (trains)</div>
+<div class='nobreak'>✔️ pushing on paths</div>
+<div class='nobreak'>✔️ steps where necessary</div>
+<div><pre>local default_speed = 15
+local walking_speed = 6</pre>
+</div>
+<div><pre>bicycle_speeds = {
+  ["cycleway"] = default_speed,
+  ["primary"] = default_speed,
+  ["primary_link"] = default_speed,
+  ["secondary"] = default_speed,
+  ["secondary_link"] = default_speed,
+  ["tertiary"] = default_speed,
+  ["tertiary_link"] = default_speed,
+  ["residential"] = default_speed,
+  ["unclassified"] = default_speed,
+  ["living_street"] = default_speed,
+  ["road"] = default_speed,
+  ["service"] = default_speed,
+  ["track"] = 12,
+  ["path"] = 12
+}</pre>
+</div>
+<div><pre>pedestrian_speeds = {
+  ["footway"] = walking_speed,
+  ["pedestrian"] = walking_speed,
+  ["steps"] = 2
+}</pre>
+</div>
+<div><pre>railway_speeds = {
+  ["train"] = 10,
+  ["railway"] = 10,
+  ["subway"] = 10,
+  ["light_rail"] = 10,
+  ["monorail"] = 10,
+  ["tram"] = 10
+}</pre>
+</div>
+<div><pre>amenity_speeds = {
+  ["parking"] = 10,
+  ["parking_entrance"] = 10
+}</pre>
+</div>
+<div><pre>platform_speeds = {
+  ["platform"] = walking_speed
+}
+
+man_made_speeds = {
+  ["pier"] = walking_speed
+}</pre>
+</div>
+<div><pre>route_speeds = {
+  ["ferry"] = 5
+}
+
+bridge_speeds = {
+  ["movable"] = 5
+}</pre>
+</div>
+<div><pre>traffic_signal_penalty          = 2
+use_turn_restrictions           = false
+
+local obey_oneway               = true
+local obey_bollards             = false
+local ignore_areas              = true
+local u_turn_penalty            = 20
+local turn_penalty              = 60
+local turn_bias                 = 1.4
+local safety_penalty            = 1.0
+local use_public_transport      = true
+local fallback_names            = true
+</pre>
+</div>
+<div><img src='./assets/lua/node_function.png' />
+</div>
+<div><img src='./assets/lua/way_function_a_traverse.png' />
+</div>
+<div><img src='./assets/lua/way_function_b_speed.png' />
+</div>
+<div><img src='./assets/lua/way_function_c_direction.png' />
+</div>
+<div><img src='./assets/lua/way_function_d_pushing.png' />
+</div>
+<div><img src='./assets/lua/way_function_e_cycleway.png' />
+</div>
+<div><img src='./assets/lua/way_function_f_dismount.png' />
+</div>
+<div><img src='./assets/lua/way_function_g_surface.png' />
+</div>
+<div><img src='./assets/lua/way_function_h_limit.png' />
+</div>
+<div>assumptions:
+    <ul>
+        <li><code>highway=path</code> || <code>highway=track</code></li>
+        <li><code>mtb=*</code></li>
+        <li><code>! bicycle=no</code></li>
+    </ul>
+</div>
+<div><pre>node_function (node, result)
+
+    <span class='comment'>-- TODO is this passable? assign bool to `result.barrier`</span>
+    result.barrier = false
+
+end</pre>
+</div>
+<div><pre>way_function (way, result)
+    <span class='comment'>-- TODO is this routable? if not, `return`
+
+    -- TODO use `mtb:scale` and `mtb:scale:imba` values to score</span>
+end</pre>
+</div>
+<div>
+    <em>osm data:</em> <span class='nobreak'>help improve cycling directions</span>
+</div>
+<div><ul>
+    <li>coverage</li>
+    <li class='nobreak'>tag consistency/conventions</li>
+    <li>connectivity</li>
+</ul></div>
+<div>
+    <p>≠ highway +</p>
+    <p>≠ route +</p>
+    <p>≠ railway +</p>
+    <p>≠ amenity +</p>
+    <p>≠ man_made +</p>
+    <p>≠ public_transport +</p>
+    <p>≠ bridge</p>
+</div>
+<div>
+    <p class='nobreak'>== building??</p>
+    <small>probably</small>
+</div>
+<div>
+    <p class='nobreak'>surface tags</p>
+</div>
+<div>
+    <pre>surface_speeds = {
+  ["asphalt"] = default_speed,
+  ["cobblestone:flattened"] = 10,
+  ["paving_stones"] = 10,
+  ["compacted"] = 10,
+  ["cobblestone"] = 6,
+  ["unpaved"] = 6,
+  ["fine_gravel"] = 6,
+  ["gravel"] = 6,
+  ["pebblestone"] = 6,
+  ["ground"] = 6,
+  ["dirt"] = 6,
+  ["earth"] = 6,
+  ["grass"] = 6,
+  ["mud"] = 3,
+  ["sand"] = 3
+}</pre>
+</div>
+<div><img src='./assets/surface/asphalt.jpg' /></div>
+<div><img src='./assets/surface/paving_stones.jpg' /></div>
+<div><img src='./assets/surface/cobblestone.jpg' /></div>
+<div><img src='./assets/surface/fine_gravel.jpg' /></div>
+<div><img src='./assets/surface/gravel.jpg' /></div>
+<div><img src='./assets/surface/pebblestone.jpg' /></div>
+<div><img src='./assets/surface/grass.jpg' /></div>
+<div><img src='./assets/surface/dirt.jpg' /></div>
+<div><img src='./assets/surface/sand.jpg' /></div>
+<div>
+    <p class='nobreak'>cycleway tags</p>
+</div>
+<div>
+    <a href='http://wiki.openstreetmap.org/wiki/Bicycle'>wiki.openstreetmap.org/wiki/Bicycle</a>
+</div>
+<div class='nobreak'>highway=* + cycleway=lane</div>
+    <div><p></p><img class='osmtag' src='./assets/tags/1.svg' /></div>
+<div class='nobreak'>highway=* + cycleway:right=lane</div>
+    <div><p></p><img class='osmtag' src='./assets/tags/2.svg' /></div>
+<div class='nobreak'>highway=* + cycleway:right=lane + oneway:bicycle=no</div>
+    <div><p></p><img class='osmtag' src='./assets/tags/3.svg' /></div>
+<div class='nobreak'>highway=* + oneway=yes + cycleway=lane + oneway:bicycle=no</div>
+    <div><p></p><img class='osmtag' src='./assets/tags/4.svg' /></div>
+<div class='nobreak'>highway=* + oneway=yes + cycleway:right=lane</div>
+    <div><p></p><img class='osmtag' src='./assets/tags/5.svg' /></div>
+<div class='nobreak'>highway=* + oneway=yes + lanes=2 + cycleway=lane</div>
+    <div><p></p><img class='osmtag' src='./assets/tags/6.png' /></div>
+<div class='nobreak'>highway=* + bicycle=use_sidepath +
+  highway=cycleway + oneway=yes</div>
+  <div><p></p><img class='osmtag' src='./assets/tags/7.svg' /></div>
+<div class='nobreak'>highway=* + oneway=yes + bicycle=use_sidepath +
+  highway=cycleway + oneway=no</div>
+  <div><p></p><img class='osmtag' src='./assets/tags/8.svg' /></div>
+<div class='nobreak'>highway=* + oneway=yes + cycleway=opposite</div>
+    <div><p></p><img class='osmtag' src='./assets/tags/9.svg' /></div>
+<div class='nobreak'>highway=* + cycleway:right=lane + bicycle:backward=use_sidepath +
+  highway=cycleway + oneway=yes</div>
+  <div><p></p><img class='osmtag' src='./assets/tags/10.svg' /></div>
+<div class='nobreak'>highway=* + cycleway=track + segregated=yes + foot=designated</div>
+    <div><p></p><img class='osmtag' src='./assets/tags/11.svg' /></div>
+<div>
+    <p class='nobreak'>bicycle access tags</p>
+</div>
+<div><pre>bicycle=yes
+bicycle=designated
+bicycle=use_sidepath
+bicycle=no
+bicycle=permissive
+bicycle=destination
+bicycle=dismount
+oneway:bicycle=yes/no</pre>
+</div>
+<div>
+    <p>width</p>
+    <p>maxspeed</p>
+    <p>lanes</p>
+</div>
+<div>
+    connectivity
+</div>
+<div>
+    what we're doing to make cycling directions <em>better</em> in OSRM
+</div>
+<div><img src='./assets/feedback/feedback-0.png' /></div>
+<div><img src='./assets/feedback/feedback-1.png' /></div>
+<div><img src='./assets/feedback/feedback-2.png' /></div>
+<div><img src='./assets/feedback/feedback-3.png' /></div>
+<div><img src='./assets/feedback/feedback-4.png' /></div>
+<div><img src='./assets/feedback/feedback-5.png' /></div>
+<div><img src='./assets/wiggle_not.png' /></div>
+<div><img src='./assets/wiggle_yes.png' /></div>
+<div>
+    external data support
+</div>
+<div>
+    <pre>elevation_source = load_raster_source(
+    "the-whole-world-SRTM.asc"
+)</pre>
+</div>
+<div>
+    <pre>terribleness =
+    get_raster_data(elevation_source, start.lon, start.lat) -
+    get_raster_data(elevation_source, end.lon, end.lat)</pre>
+    <pre>> :( :(</pre>
+</div>
+<div>
+    <pre>much_danger = ("sf-bicycle-injuries.asc")</pre>
+    <pre>stay_awayyyyy = get_raster_data_interpolated(
+    much_danger, lon, lat)</pre>
+</div>
+<div>
+    <p class='nobreak'>relation support</p>
+</div>
+<div><img src='./assets/sf_bikeways_no.png' /></div>
+<div><img src='./assets/sf_bikeways.png' /></div>
+<div>
+    <span class='nobreak'>separate speed and</span> edge weight
+</div>
+<div><img src='./assets/biketopresidio-noelev.png' /></div>
+<div><img src='./assets/biketopresidio-withelev.png' /></div>
+<div>
+    <p class='nobreak'>better cycling directions with</p>
+    <em> OSM</em> and <em>OSRM</em>
+    <br />
+    <br />
+    <br />
+    <small>github.com/Project-OSRM</small>
+    <br />
+    <small>@lbudorick</small>
+</div>
